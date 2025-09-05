@@ -1,9 +1,7 @@
 // Import Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-// 🔑 Twoje dane z Firebase
-const firebaseConfig = {
+import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-
+  const firebaseConfig = {
   apiKey: "AIzaSyCM4H0jTDtwQsHo5kLRaf37dr-OyMTQcUY",
   authDomain: "czatmat-cb69c.firebaseapp.com",
   databaseURL: "https://czatmat-cb69c-default-rtdb.europe-west1.firebasedatabase.app",
@@ -14,29 +12,50 @@ const firebaseConfig = {
   measurementId: "G-PW1DHDD195"
 };
 
-// 🚀 Start Firebase
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-// Funkcja wysyłania wiadomości
-window.sendMessage = function() {
-  const input = document.getElementById("messageInput");
-  const message = input.value;
+const messagesRef = db.ref("rooms/general/messages");
 
-  if (message.trim() !== "") {
-    push(ref(db, "messages"), {
-      text: message,
-      time: Date.now()
-    });
-    input.value = "";
-  }
-};
-
-// Odbieranie wiadomości
 const messagesDiv = document.getElementById("messages");
-onChildAdded(ref(db, "messages"), (snapshot) => {
-  const data = snapshot.val();
-  const p = document.createElement("p");
-  p.textContent = data.text;
-  messagesDiv.appendChild(p);
+const messageForm = document.getElementById("message-form");
+const messageInput = document.getElementById("message-input");
+
+function renderMessage(msg) {
+  const div = document.createElement("div");
+  div.classList.add("message");
+
+  const urlPattern = /(https?:\/\/.+\.(jpg|jpeg|png|gif|webp))$/i;
+  if (urlPattern.test(msg.text)) {
+    const img = document.createElement("img");
+    img.src = msg.text;
+    img.style.maxWidth = "100%";
+    div.appendChild(img);
+  } else if (msg.text.startsWith("http")) {
+    const a = document.createElement("a");
+    a.href = msg.text;
+    a.target = "_blank";
+    a.textContent = msg.text;
+    div.appendChild(a);
+  } else {
+    div.textContent = msg.text;
+  }
+
+  return div;
+}
+
+messageForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = messageInput.value.trim();
+  if (text) {
+    messagesRef.push({ text, timestamp: Date.now() });
+    messageInput.value = "";
+  }
+});
+
+messagesRef.on("child_added", (snapshot) => {
+  const msg = snapshot.val();
+  const div = renderMessage(msg);
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 });
